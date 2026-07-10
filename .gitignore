@@ -1,0 +1,67 @@
+# ============================================================
+# SECURITY - NEVER COMMIT THESE
+# ============================================================
+.env
+*.env
+.env.local
+.env.production
+.env.*.local
+
+# ============================================================
+# Python / Backend
+# ============================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+ENV/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+*.log
+
+# Uploaded files & test data (can be large / sensitive)
+backend/uploads/
+backend/test_pdfs/
+backend/test_dataset/
+
+# ============================================================
+# Node / Frontend
+# ============================================================
+node_modules/
+frontend/dist/
+frontend/build/
+frontend/.cache/
+*.tsbuildinfo
+
+# ============================================================
+# Docker
+# ============================================================
+docker-compose.override.yml
+
+# ============================================================
+# IDE & OS
+# ============================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ============================================================
+# Database & Vector Store volumes (if mounted locally)
+# ============================================================
+pgdata/
+qdrant_data/
+redis_data/

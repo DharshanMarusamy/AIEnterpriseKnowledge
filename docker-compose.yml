@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  # -------------------------
+  # PostgreSQL (Main Database)
+  # -------------------------
+  postgres:
+    image: postgres:15
+    container_name: eka_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-eka_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eka_secure_pass_123}
+      POSTGRES_DB: ${POSTGRES_DB:-eka_db}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eka_admin -d $${POSTGRES_DB:-eka_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------
+  # Redis (Caching & Session Store)
+  # -------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: eka_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------
+  # Qdrant (Vector Database)
+  # -------------------------
+  qdrant:
+    image: qdrant/qdrant:v1.7.4
+    container_name: eka_qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+  # -------------------------
+  # Backend API (FastAPI)
+  # -------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: eka_backend
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-eka_admin}:${POSTGRES_PASSWORD:-eka_secure_pass_123}@postgres:5432/${POSTGRES_DB:-eka_db}
+      - REDIS_URL=redis://redis:6379/0
+      - QDRANT_URL=http://qdrant:6333
+      - JWT_SECRET=${JWT_SECRET:-super_secret_jwt_key_change_in_prod}
+      - GEMINI_API_KEY=${EKA_GEMINI_API_KEY}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    restart: unless-stopped
+
+  # -------------------------
+  # Frontend UI (React + Vite)
+  # -------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: eka_frontend
+    environment:
+      - VITE_API_URL=http://localhost:8000
+      - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
+      - VITE_MICROSOFT_CLIENT_ID=${VITE_MICROSOFT_CLIENT_ID}
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  qdrant_data:

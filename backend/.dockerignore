@@ -1,0 +1,54 @@
+# Git
+.git
+.gitignore
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env
+
+# Test files
+test_*/
+tests/
+*.test.py
+pytest.ini
+.pytest_cache/
+
+# Uploads and generated content
+uploads/
+test_pdfs/
+test_dataset/
+
+# Logs
+*.log
+logs/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker files
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Alembic (migrations run separately)
+alembic/versions/
+
+# OS files
+.DS_Store
+Thumbs.db

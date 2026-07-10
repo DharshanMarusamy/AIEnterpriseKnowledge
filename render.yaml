@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: ai-enterprise-backend
+    env: docker
+    rootDir: backend
+    region: oregon # Or your preferred region (e.g., frankfurt, ohio, singapore)
+    plan: free # Use the free tier
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: QDRANT_URL
+        sync: false
+      - key: QDRANT_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: https://ai-enterprise-knowledge.vercel.app
