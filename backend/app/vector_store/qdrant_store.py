@@ -2,8 +2,11 @@ import uuid
 from typing import List
 from qdrant_client import QdrantClient
 from qdrant_client.http import models as qmodels
-from sentence_transformers import SentenceTransformer
+import google.generativeai as genai
 from app.core.config import settings
+
+# Initialize Gemini SDK with the API Key
+genai.configure(api_key=settings.GEMINI_API_KEY)
 
 class VectorStore:
     def __init__(self, collection_name: str = "enterprise_knowledge"):
@@ -12,19 +15,27 @@ class VectorStore:
             api_key=settings.QDRANT_API_KEY,  # None for local, required for Qdrant Cloud
         )
         self.collection_name = collection_name
-        self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
+        self.embedding_model = "models/text-embedding-004"
         self._ensure_collection()
+
+    def _get_gemini_embeddings(self, texts: List[str], task_type: str) -> List[List[float]]:
+        response = genai.embed_content(
+            model=self.embedding_model,
+            content=texts,
+            task_type=task_type
+        )
+        return response['embedding']
 
     def _ensure_collection(self):
         try:
             self.client.get_collection(self.collection_name)
         except Exception:
             # Collection does not exist, create it
-            # all-MiniLM-L6-v2 produces 384 dimensional vectors
+            # Gemini text-embedding-004 produces 768 dimensional vectors
             self.client.create_collection(
                 collection_name=self.collection_name,
                 vectors_config=qmodels.VectorParams(
-                    size=384,
+                    size=768,
                     distance=qmodels.Distance.COSINE
                 )
             )
@@ -34,13 +45,14 @@ class VectorStore:
         if not chunks:
             return
 
-        embeddings = self.encoder.encode(chunks)
+        # Use task_type="retrieval_document" for documents stored in the DB
+        embeddings = self._get_gemini_embeddings(chunks, task_type="retrieval_document")
         points = []
         for i, (chunk, embedding, meta) in enumerate(zip(chunks, embeddings, metadatas)):
             point_id = str(uuid.uuid4())
             points.append(qmodels.PointStruct(
                 id=point_id,
-                vector=embedding.tolist(),
+                vector=embedding,
                 payload={
                     "text": chunk,
                     **meta
@@ -55,7 +67,9 @@ class VectorStore:
     def search(self, query: str, limit: int = 5) -> List[dict]:
         """Searches for similar chunks."""
         print(f"Embedding query: '{query}'")
-        query_vector = self.encoder.encode(query).tolist()
+        # Use task_type="retrieval_query" for search queries
+        query_vector = self._get_gemini_embeddings([query], task_type="retrieval_query")[0]
+        
         print(f"Querying Qdrant for embedded vector of query '{query}'")
         results = self.client.search(
             collection_name=self.collection_name,
