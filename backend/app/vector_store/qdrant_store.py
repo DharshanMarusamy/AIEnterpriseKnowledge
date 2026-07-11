@@ -9,7 +9,7 @@ from app.core.config import settings
 genai.configure(api_key=settings.GEMINI_API_KEY)
 
 class VectorStore:
-    def __init__(self, collection_name: str = "enterprise_knowledge"):
+    def __init__(self, collection_name: str = "enterprise_knowledge_gemini"):
         self.client = QdrantClient(
             url=settings.QDRANT_URL,
             api_key=settings.QDRANT_API_KEY,  # None for local, required for Qdrant Cloud
