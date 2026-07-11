@@ -31,14 +31,18 @@ class VectorStore:
             self.client.get_collection(self.collection_name)
         except Exception:
             # Collection does not exist, create it
-            # Gemini text-embedding-004 produces 768 dimensional vectors
-            self.client.create_collection(
-                collection_name=self.collection_name,
-                vectors_config=qmodels.VectorParams(
-                    size=768,
-                    distance=qmodels.Distance.COSINE
+            try:
+                self.client.create_collection(
+                    collection_name=self.collection_name,
+                    vectors_config=qmodels.VectorParams(
+                        size=768,
+                        distance=qmodels.Distance.COSINE
+                    )
                 )
-            )
+            except Exception as e:
+                # If multiple workers try to create it at the same time, one will get a 409 Conflict
+                if "already exists" not in str(e) and "409" not in str(e):
+                    raise
 
     def add_documents(self, chunks: List[str], metadatas: List[dict]):
         """Embeds text chunks and stores them in Qdrant."""
